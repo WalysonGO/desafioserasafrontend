@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { signIn, useSession } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useForm } from '@mantine/form';
 import {
@@ -15,18 +15,18 @@ import {
     Button,
     Loader,
 } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
-import classes from './page.module.css';
+import classes from '../page.module.css';
+import { useUserCreate } from '@/_hooks/useUserCreate';
 
-const Home: React.FC = () => {
-    const [btnLoginLoading, setBtnLoginLoading] = useState(false);
+const Register: React.FC = () => {
     const { data: session, status } = useSession();
+    const { mutate: userCreate, isLoading, error } = useUserCreate()
     const router = useRouter();
 
     const form = useForm({
         initialValues: {
-            email: 'teste@teste.com',
-            password: '12345678',
+            email: '',
+            password: '',
         },
         validate: {
             email: (value) => (/^\S+@\S+$/.test(value) ? null : 'Email inválido'),
@@ -40,25 +40,15 @@ const Home: React.FC = () => {
         }
     }, [session, status, router]);
 
-    const handleLogin = async (event: React.FormEvent<HTMLFormElement>, values: { email: string; password: string }) => {
+    const handleRegister = async (event: React.FormEvent<HTMLFormElement>, values: { email: string; password: string }) => {
         event.preventDefault();
-        setBtnLoginLoading(true);
-        const result: any = await signIn('credentials', {
-            redirect: false,
-            email: values.email,
-            password: values.password,
-        });
-
-        if (result.status === 401 || result.error) {
-            setBtnLoginLoading(false);
-            notifications.show({
-                title: 'Erro',
-                message: 'E-mail ou Senha inválidos',
-                color: 'red',
-            })
+        if (!form.validate().hasErrors && form.values.email !== '' && form.values.password !== '') {
+            userCreate(form.values);
+            if (!error) {
+                router.push('/');
+            }
         } else {
-            setBtnLoginLoading(false);
-            // router.push('/dashboard');
+            form.validate();
         }
     };
 
@@ -68,9 +58,9 @@ const Home: React.FC = () => {
                 Gestão de Dívidas Pessoais
             </Title>
             <Text color="dimmed" size="sm" mt={5}>
-                Não tem uma conta?{' '}
-                <Anchor size="sm" href="/register" component="a" className={classes.link}>
-                    Crie uma agora
+                Acesse sua conta{' '}
+                <Anchor size="sm" href="/" component="a" className={classes.link}>
+                    Acessar
                 </Anchor>
             </Text>
 
@@ -91,8 +81,8 @@ const Home: React.FC = () => {
                         {...form.getInputProps('password')}
                         className={classes.input}
                     />
-                    <Button type="submit" fullWidth mt="xl" color="#ba005a" onClick={(e: any) => handleLogin(e, form.values)} className={classes.button}>
-                        {btnLoginLoading ? <Loader color="white" size="xs" /> : 'Acessar'}
+                    <Button type="submit" fullWidth mt="xl" color="#ba005a" onClick={(e: any) => handleRegister(e, form.values)} className={classes.button}>
+                        {isLoading ? <Loader color="white" size="xs" /> : 'Cadastrar'}
                     </Button>
                 </form>
             </Paper>
@@ -100,4 +90,4 @@ const Home: React.FC = () => {
     );
 };
 
-export default Home;
+export default Register;
